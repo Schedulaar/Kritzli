@@ -48,7 +48,7 @@ Vector3D Calculation::getPenPositionFromAngles(double angles[4], int debug) {
 }
 
 int Calculation::calcAngles(const Vector3D& point, double angles[4]){
-	if (!Calculation::getMotor1AngleForPoint2D(point.z, point.x, angles)) /*should finally work now*/
+	if (!Calculation::getMotor1Angle(point.z, point.x, angles[0])) /*should finally work now*/
 		return 0;
 
 	Vector3D motor2 = Calculation::getMotor2Position(angles[0]); /*should always work*/
@@ -61,10 +61,10 @@ int Calculation::calcAngles(const Vector3D& point, double angles[4]){
 	Vector3D d1 = motor3 - motor2;
 	Vector3D d2 = motor4 - motor3;
 
-	if (!Calculation::getMotor2Angle(motor2, motor3, angles[0], angles + 1))
+	if (!Calculation::getMotor2Angle(motor2, motor3, angles[0], angles[1]))
 		return 0;
 
-	if (!Calculation::getMotor3Angle(motor3, motor4, angles[0], angles[1], angles + 2))
+	if (!Calculation::getMotor3Angle(motor3, motor4, angles[0], angles[1], angles[2]))
 		return 0;
 
 	angles[3] = Calculation::getMotor4Angle(angles[1], angles[2]);
@@ -85,7 +85,7 @@ Vector3D Calculation::getPenTopPosition(const Vector3D& point) { /*for exact ver
 }
 
 /* -90deg positiv z (nach rechts), 90deg negativ z (nach links) */
-int Calculation::getMotor1AngleForPoint2D(double z, double x, double& angle) { 
+int Calculation::getMotor1Angle(double z, double x, double& angle) { 
 	const double r = nullToMotor1.z + motor1tomotor2.z + arm1_horizontal.z + arm2_horizontal.z + motor4ToPenTop.z;
 	double l = sqrt(pow(x - nullToMotor1.x, 2) + pow(z, 2));
 	double gamma = atan(z / (x -nullToMotor1.x));
@@ -138,7 +138,7 @@ int Calculation::getMotor3Position(double motor1angle, const Vector3D& motor2, c
 int Calculation::getMotor2Angle(const Vector3D& motor2, const Vector3D& motor3, double motor1angle, double& angle) { 
 	Vector3D d = motor3 - motor2;
 	d = Matrix3D::fromRotation(Y_AXIS, -motor1angle) * d;
-	*angle = atan(fabs(d.y / d.x));
+	angle = atan(fabs(d.y / d.x));
 	if (d.y >= 0 && d.x >= 0) { /*do nothing */ }
 	else if (d.y >= 0 && d.x < 0) { angle = M_PI - angle; }
 	else if (d.y < 0 && d.x >= 0) { angle = -angle; }

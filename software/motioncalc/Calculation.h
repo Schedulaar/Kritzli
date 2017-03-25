@@ -12,8 +12,8 @@ struct AngleSet
 class Calculation
 {
 private:
-	static int getMotor1AngleForPoint2D(double z, double x, double& angle); /*-90deg: */
-	static Vector3D getMotor4Position(Vector3D &point, double motor1angle);
+	static int getMotor1Angle(double z, double x, double& angle); /*-90deg: */
+	static Vector3D getMotor4Position(const Vector3D &point, double motor1angle);
 	static Vector3D getMotor2Position(double motor1angle);
 	static int getMotor3Angle(const Vector3D& motor3, const Vector3D& motor4, double motor1angle, double motor2angle, double& angle);
 	static double getMotor4Angle(double motor2angle, double motor3angle);
