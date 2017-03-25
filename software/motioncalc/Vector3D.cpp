@@ -8,7 +8,7 @@ Vector3D::Vector3D()
 	this->z = 0;
 }
 
-Vector3D::Vector3D(long double x, long double y, long double z)
+Vector3D::Vector3D(double x, double y, double z)
 {
 	this->x = x;
 	this->y = y;
@@ -39,9 +39,9 @@ Vector3D & Vector3D::operator-=(const Vector3D & y)
 	return *this;
 }
 
-long double Vector3D::getLength() const
+double Vector3D::getLength() const
 {
-	return sqrtl(x*x + y*y + z*z);
+	return sqrt(x*x + y*y + z*z);
 }
 
 inline bool operator==(const Vector3D & x, const Vector3D & y)

@@ -8,13 +8,13 @@
 class Matrix3D
 {
 public:
-	long double values[3][3];
+	double values[3][3];
 	Matrix3D();
-	Matrix3D(long double val[3][3]);
+	Matrix3D(double val[3][3]);
 	Matrix3D& operator=(Matrix3D x);
 	Matrix3D& operator+=(const Matrix3D& y);
 	Matrix3D& operator*=(const Matrix3D& y);
-	static Matrix3D fromRotation(int axis, long double angle);
+	static Matrix3D fromRotation(int axis, double angle);
 };
 
 inline bool operator==(const Matrix3D& x, const Matrix3D& y);

@@ -6,19 +6,20 @@
 #include <assert.h>
 
 /*x-Achse: Mitte Papier*/
-/*y-Achse: Höhe*/
-/*z-Achse: Kante Fuß Papier*/
-const long double pen_length = 5; /*länge ab loch unten */
-const Vector3D nullToMotor1(-3.019, 4.497, 0); /*z: 0.005*/
-const Vector3D motor1tomotor2(0.581, 3.849, -1.604);
-const Vector3D arm_horizontal(8.518, 0, -1.536); /*length about 8.6 cm, y: 0.013*/
-const Vector3D motor4ToPenHolderCenter(0, 0, -1.147);
-const Vector3D penHolderCenterToPenTop(0, -1.003, 0); /*x was 0.004 */
+/*y-Achse: Hoehe*/
+/*z-Achse: Kante Fuss Papier*/
+const double pen_length = 5.5; /*laenge ab loch unten */
+const Vector3D nullToMotor1(-4, 4.65, 0);
+const Vector3D motor1tomotor2(2.1225, 3.45, -1.6001);
+const Vector3D arm1_horizontal(10.435, 0.0026, -0.8495); /*length about 8.6 cm, y: 0.013*/
+const Vector3D arm2_horizontal(10.3656, 0.0005, -1.3495); /*length about 8.6 cm, y: 0.013*/
+const Vector3D motor4ToPenHolderCenter(0, 0, -1.147); //TODO
+const Vector3D penHolderCenterToPenTop(0, -1.003, 0); //TODO
 const Vector3D motor4ToPenTop = motor4ToPenHolderCenter + penHolderCenterToPenTop;
 const Vector3D PenTopToPenTip(0, -pen_length, 0);
 
 
-Vector3D Calculation::getPenPositionFromAngles(long double angles[4], int debug = 0) {
+Vector3D Calculation::getPenPositionFromAngles(double angles[4], int debug) {
 	if (debug) printf("Motor1:\n");
 	Transform3D tr = Transform3D(Matrix3D(), nullToMotor1);
 	if(debug) tr.print();
@@ -30,12 +31,12 @@ Vector3D Calculation::getPenPositionFromAngles(long double angles[4], int debug 
 	tr *= Matrix3D::fromRotation(Z_AXIS, angles[1]);
 	if (debug) tr.print();
 	if (debug) printf("Motor3:\n");
-	tr *= Transform3D(Matrix3D(), arm_horizontal);
+	tr *= Transform3D(Matrix3D(), arm1_horizontal);
 	if (debug) tr.print();
 	tr *= Matrix3D::fromRotation(Z_AXIS, angles[2]);
 	if (debug) tr.print();
 	if (debug) printf("Motor4:\n");
-	tr *= Transform3D(Matrix3D(), arm_horizontal);
+	tr *= Transform3D(Matrix3D(), arm2_horizontal);
 	if (debug) tr.print();
 	tr *= Matrix3D::fromRotation(Z_AXIS, angles[3]);
 	if (debug) tr.print();
@@ -46,119 +47,116 @@ Vector3D Calculation::getPenPositionFromAngles(long double angles[4], int debug 
 	return tr * Vector3D();
 }
 
-int Calculation::calcAngles(Vector3D *point, long double angles[4])
-{
-	if (!Calculation::getMotor1AngleForPoint2D(point->z, point->x, angles)) /*should finally work now*/
+int Calculation::calcAngles(const Vector3D& point, double angles[4]){
+	if (!Calculation::getMotor1AngleForPoint2D(point.z, point.x, angles)) /*should finally work now*/
 		return 0;
 
 	Vector3D motor2 = Calculation::getMotor2Position(angles[0]); /*should always work*/
 	Vector3D motor4 = Calculation::getMotor4Position(point, angles[0]); /*should work now*/
 
 	Vector3D motor3;
-	if (!Calculation::getMotor3Position(angles[0], &motor2, &motor4, &motor3))
+	if (!Calculation::getMotor3Position(angles[0], motor2, motor4, motor3))
 		return 0;
 
 	Vector3D d1 = motor3 - motor2;
 	Vector3D d2 = motor4 - motor3;
 
-	if (!Calculation::getMotor2Angle(&motor2, &motor3, angles[0], angles + 1))
+	if (!Calculation::getMotor2Angle(motor2, motor3, angles[0], angles + 1))
 		return 0;
 
-	if (!Calculation::getMotor3Angle(&motor3, &motor4, angles[0], angles[1], angles + 2))
+	if (!Calculation::getMotor3Angle(motor3, motor4, angles[0], angles[1], angles + 2))
 		return 0;
 
 	angles[3] = Calculation::getMotor4Angle(angles[1], angles[2]);
 	return 1;
 }
 
-int Calculation::getPenPositionForVector3D(Vector3D *point, Vector3D *p) {
-	long double angles[4];
+int Calculation::getPenPositionForVector3D(const Vector3D& point, Vector3D& p) {
+	double angles[4];
 	if (!Calculation::calcAngles(point, angles))
 		return 0;
 
-	*p = Calculation::getPenPositionFromAngles(angles);
+	p = Calculation::getPenPositionFromAngles(angles);
 	return 1;
 }
 
-Vector3D Calculation::getPenTopPosition(Vector3D *point) { /*for exact vertical pen*/
-	return *point - PenTopToPenTip;
+Vector3D Calculation::getPenTopPosition(const Vector3D& point) { /*for exact vertical pen*/
+	return point - PenTopToPenTip;
 }
 
-/* -90° positiv z (nach rechts), 90° negativ z (nach links) */
-int Calculation::getMotor1AngleForPoint2D(long double z, long double x, long double *angle) { 
-	const long double r = nullToMotor1.z + motor1tomotor2.z + 2 * arm_horizontal.z + motor4ToPenTop.z;
-	long double l = sqrtl(powl(x - nullToMotor1.x, 2) + powl(z, 2));
-	long double gamma = atanl(z / (x -nullToMotor1.x));
-	long double beta = asinl(fabs(r / l));
-	*angle = - gamma - beta;
-	return *angle != NAN;
+/* -90deg positiv z (nach rechts), 90deg negativ z (nach links) */
+int Calculation::getMotor1AngleForPoint2D(double z, double x, double& angle) { 
+	const double r = nullToMotor1.z + motor1tomotor2.z + arm1_horizontal.z + arm2_horizontal.z + motor4ToPenTop.z;
+	double l = sqrt(pow(x - nullToMotor1.x, 2) + pow(z, 2));
+	double gamma = atan(z / (x -nullToMotor1.x));
+	double beta = asin(fabs(r / l));
+	angle = - gamma - beta;
+	return angle != NAN;
 }
 
-Vector3D Calculation::getMotor2Position(long double motor1angle) {
+Vector3D Calculation::getMotor2Position(double motor1angle) {
 	Transform3D tr = Transform3D(Matrix3D(), nullToMotor1);
 	tr *= Matrix3D::fromRotation(Y_AXIS, motor1angle);
 	tr *= Transform3D(Matrix3D(), motor1tomotor2);
 	return tr * Vector3D();;
 }
 
-Vector3D Calculation::getMotor4Position(Vector3D *point, long double motor1angle) {
+Vector3D Calculation::getMotor4Position(const Vector3D& point, double motor1angle) {
 	Vector3D penHolderCenter = getPenTopPosition(point) - penHolderCenterToPenTop;
-	long double beta = M_PI_2 - motor1angle;
-	long double delta_z = sinl(beta) * motor4ToPenHolderCenter.getLength();
-	long double delta_x = cosl(beta) * motor4ToPenHolderCenter.getLength();
+	double beta = M_PI_2 - motor1angle;
+	double delta_z = sin(beta) * motor4ToPenHolderCenter.getLength();
+	double delta_x = cos(beta) * motor4ToPenHolderCenter.getLength();
 	return penHolderCenter + Vector3D(delta_x, 0, delta_z);
 }
 
-
-int Calculation::getSchnittpktCircles2D(long double r, long double x2, long double y2, long double *x3, long double *y3) {
-	long double radius = arm_horizontal.x;
-	long double angle = atanl(y2 / x2);
-	long double l = sqrtl(x2*x2 + y2*y2);
+/*TODO: different radius */
+int Calculation::getSchnittpktCircles2D(double r, double x2, double y2, double& x3, double& y3) { 
+	double radius = arm1_horizontal.x;
+	double angle = atan(y2 / x2);
+	double l = sqrt(x2*x2 + y2*y2);
 	if (2 * radius < l)
 		return 0;
-	long double y = sqrtl(radius*radius - (l * l * 0.25));
+	double y = sqrt(radius*radius - (l * l * 0.25));
 	Vector3D v = Matrix3D::fromRotation(Z_AXIS, angle) * Vector3D(l * 0.5, y, 0);
-	*x3 = v.x;
-	*y3 = v.y;
+	x3 = v.x;
+	y3 = v.y;
 	return 1;
 }
 
-int Calculation::getMotor3Position(long double motor1angle, const Vector3D *motor2, const Vector3D *motor4, Vector3D *p) {
-	Vector3D d = Matrix3D::fromRotation(Y_AXIS, -motor1angle) * (*motor4 - *motor2);
+int Calculation::getMotor3Position(double motor1angle, const Vector3D& motor2, const Vector3D& motor4, Vector3D& p) {
+	Vector3D d = Matrix3D::fromRotation(Y_AXIS, -motor1angle) * (motor4 - motor2);
 	Vector3D sp;
-	if (!getSchnittpktCircles2D(arm_horizontal.x, d.x, d.y, &sp.x, &sp.y))
+	if (!getSchnittpktCircles2D(arm1_horizontal.x, d.x, d.y, sp.x, sp.y))
 		return 0;
-	sp.z = arm_horizontal.z;
+	sp.z = arm1_horizontal.z;
 	sp = Matrix3D::fromRotation(Y_AXIS, motor1angle) * sp;
-	*p = *motor2 + sp;
+	p = motor2 + sp;
 	return 1;
 }
 
-/*90° points to positive y-axis, -90° points to negative y-axis*/
-int Calculation::getMotor2Angle(const Vector3D *motor2, const Vector3D *motor3, long double motor1angle, long double *angle) 
-{ 
-	Vector3D d = *motor3 - *motor2;
+/*90deg points to positive y-axis, -90deg points to negative y-axis*/
+int Calculation::getMotor2Angle(const Vector3D& motor2, const Vector3D& motor3, double motor1angle, double& angle) { 
+	Vector3D d = motor3 - motor2;
 	d = Matrix3D::fromRotation(Y_AXIS, -motor1angle) * d;
-	*angle = atanl(fabsl(d.y / d.x));
+	*angle = atan(fabs(d.y / d.x));
 	if (d.y >= 0 && d.x >= 0) { /*do nothing */ }
-	else if (d.y >= 0 && d.x < 0) { *angle = M_PI - *angle; }
-	else if (d.y < 0 && d.x >= 0) { *angle = -*angle; }
-	else if (d.y < 0 && d.x < 0) { *angle = *angle - M_PI; }
+	else if (d.y >= 0 && d.x < 0) { angle = M_PI - angle; }
+	else if (d.y < 0 && d.x >= 0) { angle = -angle; }
+	else if (d.y < 0 && d.x < 0) { angle = angle - M_PI; }
 	else assert(false);
 
-	return *angle != NAN;
+	return angle != NAN;
 }
 
-/*90° points to positive y-axis, -90° points to negative y-axis (when motor2angle == 0)*/
-int Calculation::getMotor3Angle(const Vector3D *motor3, const Vector3D *motor4, long double motor1angle, long double motor2angle, long double *angle)
-{
+/*90deg points to positive y-axis, -90deg points to negative y-axis (when motor2angle == 0)*/
+int Calculation::getMotor3Angle(const Vector3D& motor3, const Vector3D& motor4, double motor1angle, double motor2angle, double& angle){
 	if (!getMotor2Angle(motor3, motor4, motor1angle, angle))
 		return 0;
-	*angle -= motor2angle;
+	angle -= motor2angle;
 	return 1;
 }
 
-
-long double Calculation::getMotor4Angle(long double motor2angle, long double motor3angle) {
+double Calculation::getMotor4Angle(double motor2angle, double motor3angle) {
 	return - motor3angle - motor2angle;
 }
+
